@@ -203,6 +203,9 @@
         </div>
 
         <div style="background: #FFFFFF; border: 1px solid #DCD5C7; padding: 30px 32px; margin-bottom: 34px; display: flex; flex-direction: column; gap: 14px">
+          <sc-if value="{{ fbBadge }}" hint-placeholder-val="{{ false }}">
+            <div style="font-family: 'IBM Plex Mono', Menlo, monospace; font-size: 10px; letter-spacing: 0.18em; color: #6F7A61">OPINIÓN REGISTRADA · GRACIAS</div>
+          </sc-if>
           <div style="font-family: 'IBM Plex Mono', Menlo, monospace; font-size: 11px; letter-spacing: 0.24em; color: #C15B42">¿A QUÉ CORREO TE ENVIAMOS EL INFORME?</div>
           <div style="font-size: 16px; line-height: 1.6; color: #46525E; max-width: 60ch">Es el único dato de contacto que te pedimos. Lo usa Angelica Romero Vergara — Consultoría Estratégica y Comercial únicamente para enviarte tus respuestas, nada más.</div>
           <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
@@ -213,10 +216,10 @@
             <span style="width: 18px; height: 18px; border: 1.75px solid {{ consentMark }}; background: {{ consentFill }}; flex: none; margin-top: 2px"></span>
             <span style="font-size: 13.5px; line-height: 1.55; color: #46525E">Autorizo el tratamiento de los datos de este formulario y de mi correo para generar y enviarme el diagnóstico, según la <a href="https://www.angelicaromero.cl/privacidad" target="_blank" rel="noopener" onClick="{{ stop }}">política de privacidad</a>. Puedo pedir que se eliminen escribiendo a contacto@angelicaromero.cl.</span>
           </button>
-          <div style="font-size: 12px; line-height: 1.5; color: #6B7681">Tus respuestas se guardan en este navegador para que puedas retomar el formulario; se borran automáticamente al enviarlas.</div>
-          <sc-if value="{{ emailSent }}" hint-placeholder-val="{{ false }}">
-            <div style="font-family: 'IBM Plex Mono', Menlo, monospace; font-size: 11px; letter-spacing: 0.16em; color: #6F7A61">CORREO REGISTRADO · TE ESCRIBIMOS EN 3 DÍAS HÁBILES</div>
+          <sc-if value="{{ hasDoneWarning }}" hint-placeholder-val="{{ false }}">
+            <div style="color: #C15B42; font-size: 14px">{{ doneWarningText }}</div>
           </sc-if>
+          <div style="font-size: 12px; line-height: 1.5; color: #6B7681">Tus respuestas se guardan en este navegador para que puedas retomar el formulario; se borran automáticamente al enviarlas.</div>
         </div>
 
         <div style="background: #E3D6C5; padding: 34px 36px; margin-bottom: 34px">
@@ -245,7 +248,7 @@
           <sc-if value="{{ canUpgrade }}" hint-placeholder-val="{{ false }}">
             <button onClick="{{ upgrade }}" style="cursor: pointer; background: transparent; border: none; color: #C15B42; min-height: 48px; font-size: 15px; font-weight: 500; text-align: left" style-hover="color: #A94A34">{{ upgradeLabel }} →</button>
           </sc-if>
-          <button onClick="{{ goFeedback }}" style="cursor: pointer; background: transparent; border: none; color: #2E3A46; min-height: 48px; font-size: 15px; font-weight: 600; text-align: left; margin-left: auto" style-hover="color: #C15B42">Dejar mi opinión sobre el instrumento →</button>
+          <button onClick="{{ goFeedback }}" style="cursor: pointer; background: transparent; border: none; color: #2E3A46; min-height: 48px; font-size: 15px; font-weight: 600; text-align: left; margin-left: auto" style-hover="color: #C15B42">{{ goFeedbackLabel }}</button>
         </div>
       </div>
     </div>
@@ -256,7 +259,7 @@
       <div style="width: 100%; max-width: 760px">
         <div style="font-family: 'IBM Plex Mono', Menlo, monospace; font-size: 12px; letter-spacing: 0.24em; color: #C15B42; margin-bottom: 20px">TU OPINIÓN NOS AYUDA A MEJORAR</div>
         <h1 style="font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 38px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 16px; max-width: 20ch">Sólo un minuto, queremos conocer como fue tu experiencia</h1>
-        <p style="font-size: 16px; line-height: 1.6; color: #46525E; max-width: 60ch; margin: 0 0 36px">Es anónimo y no cambia tu informe. Solo nos sirve para ajustar el instrumento antes de abrirlo a más empresas.</p>
+        <p style="font-size: 16px; line-height: 1.6; color: #46525E; max-width: 60ch; margin: 0 0 36px">Es el último paso antes de enviarte el informe. Es anónimo, toma un minuto y no cambia tu resultado.</p>
 
         <div style="display: flex; flex-direction: column; gap: 30px">
           <sc-for list="{{ scales }}" as="sc" hint-placeholder-count="3">
@@ -576,6 +579,7 @@ class Component extends DCLogic {
     const st = this.state;
     const vis = this.visible(st.level);
     const answers = st.answers;
+    const fbComplete = !!(st.fb && st.fb.claridad && st.fb.util && st.fb.pertinente && st.fb.recomienda);
     const answered = vis.filter(q => this.isAnswered(answers[q[1]])).length;
     const total = vis.length;
     const pct = total ? Math.round((answered / total) * 100) : 0;
@@ -673,19 +677,24 @@ class Component extends DCLogic {
         : '',
       email: st.email || '',
       onEmail: e => this.setState({ email: e.target.value }),
-      emailOk: /.+@.+\..+/.test(st.email || '') && !!st.consent,
-      emailBtnBg: (/.+@.+\..+/.test(st.email || '') && st.consent) ? '#C15B42' : '#C8CED4',
-      emailBtnColor: (/.+@.+\..+/.test(st.email || '') && st.consent) ? '#F0EDE4' : '#FFFFFF',
-      emailSent: !!st.emailSent,
+      fbBadge: fbComplete,
+      goFeedbackLabel: fbComplete ? 'Revisar mi opinión sobre el instrumento →' : 'Dejar mi opinión sobre el instrumento (paso obligatorio) →',
+      emailBtnBg: (fbComplete && /.+@.+\..+/.test(st.email || '') && st.consent) ? '#C15B42' : '#C8CED4',
+      emailBtnColor: (fbComplete && /.+@.+\..+/.test(st.email || '') && st.consent) ? '#F0EDE4' : '#FFFFFF',
       consentMark: st.consent ? '#C15B42' : '#B6BDC4',
       consentFill: st.consent ? '#C15B42' : 'transparent',
       toggleConsent: () => this.setState(s => ({ consent: !s.consent })),
       stop: e => e.stopPropagation(),
+      hasDoneWarning: !!st.doneTriedSend && !(/.+@.+\..+/.test(st.email || '') && !!st.consent),
+      doneWarningText: !/.+@.+\..+/.test(st.email || '')
+        ? 'Ingresa un correo válido para poder enviarte las respuestas.'
+        : 'Marca que autorizas el tratamiento de tus datos para poder enviar.',
       sendEmail: () => {
-        if (!/.+@.+\..+/.test(this.state.email || '') || !this.state.consent) return;
+        if (!fbComplete) { this.setState({ screen: 'feedback' }); return; }
+        if (!/.+@.+\..+/.test(this.state.email || '') || !this.state.consent) { this.setState({ doneTriedSend: true }); return; }
         this.submitToPilot({ tipo: 'respuestas', nivel: st.level, giro: answers.g_rubro || '', region: answers.g_region || '', email: this.state.email, answers: st.answers });
         try { window.localStorage.removeItem('arv-autodiagnostico'); } catch (e) {}
-        this.setState({ emailSent: true });
+        this.setState({ screen: 'thanks' });
       },
       levels: LEVELS.map(l => ({
         name: l.name, tag: l.tag, count: this.approxCount(l.key), time: l.time, desc: l.desc, out: l.out,
@@ -752,13 +761,12 @@ class Component extends DCLogic {
       showRecoRubro: st.fb && st.fb.recomienda === 'Sí',
       recoRubro: (st.fb && st.fb.recoRubro) || '',
       onRecoRubro: e => this.setState(s => ({ fb: Object.assign({}, s.fb, { recoRubro: e.target.value }) })),
-      fbComplete: !!(st.fb && st.fb.claridad && st.fb.util && st.fb.pertinente && st.fb.recomienda),
-      fbWarning: st.fbTriedSubmit && !(st.fb && st.fb.claridad && st.fb.util && st.fb.pertinente && st.fb.recomienda),
+      fbComplete: fbComplete,
+      fbWarning: st.fbTriedSubmit && !fbComplete,
       submitFeedback: () => {
-        const complete = !!(st.fb && st.fb.claridad && st.fb.util && st.fb.pertinente && st.fb.recomienda);
-        if (!complete) { this.setState({ fbTriedSubmit: true }); return; }
+        if (!fbComplete) { this.setState({ fbTriedSubmit: true }); return; }
         this.submitToPilot({ tipo: 'feedback', nivel: st.level, giro: answers.g_rubro || '', fb: st.fb || {} });
-        this.setState({ screen: 'thanks' });
+        this.setState({ screen: 'done', doneTriedSend: false });
       }
     };
   }
